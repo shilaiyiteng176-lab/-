@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#1a1040"/>
+<title>じゃんけん社長</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#1a1040;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;}
+#app{max-width:430px;margin:0 auto;min-height:100vh;background:#1a1040;color:#f0eeff;position:relative;overflow-x:hidden;}
+
+/* ── タイポグラフィ ── */
+h1{font-size:30px;font-weight:700;letter-spacing:-0.5px;}
+h2{font-size:18px;font-weight:600;}
+p{font-size:13px;line-height:1.6;color:#9990cc;}
+
+/* ── スクリーン ── */
+.screen{display:none;padding:16px;padding-bottom:32px;}
+.screen.active{display:block;}
+
+/* ── タイトル画面 ── */
+#title-screen{text-align:center;padding-top:60px;}
+.title-logo{font-size:72px;margin-bottom:12px;filter:drop-shadow(0 0 20px #7c3aed88);}
+.title-sub{font-size:13px;color:#7c6faa;margin-bottom:40px;}
+.tagline{font-size:15px;color:#b8acee;margin-bottom:8px;}
+.input-wrap{position:relative;margin-bottom:16px;}
+.input-wrap input{width:100%;padding:14px 16px;font-size:16px;border-radius:12px;border:1.5px solid #3d2d7a;background:#251860;color:#f0eeff;outline:none;}
+.input-wrap input:focus{border-color:#7c3aed;}
+.input-wrap input::placeholder{color:#5a4d8a;}
+.btn{display:block;width:100%;padding:14px;font-size:15px;font-weight:600;border-radius:12px;border:none;cursor:pointer;transition:all 0.15s;letter-spacing:0.3px;}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;box-shadow:0 4px 20px #7c3aed44;}
+.btn-primary:hover{background:linear-gradient(135deg,#8b5cf6,#6d28d9);transform:translateY(-1px);}
+.btn-primary:active{transform:scale(0.98);}
+.btn-ghost{background:transparent;color:#9990cc;border:1.5px solid #3d2d7a;margin-top:8px;}
+.btn-ghost:hover{background:#251860;}
+.btn-danger{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;}
+.btn-danger:hover{background:linear-gradient(135deg,#ef4444,#b91c1c);}
+.hint{font-size:11px;color:#5a4d8a;margin-top:12px;line-height:1.7;}
+
+/* ── トップバー ── */
+.top-bar{background:#251860;border-radius:14px;padding:12px 14px;margin-bottom:12px;border:1px solid #3d2d7a;}
+.top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.company-label{font-size:15px;font-weight:600;color:#f0eeff;}
+.day-badge{font-size:11px;font-weight:600;background:#7c3aed;color:#fff;padding:3px 12px;border-radius:99px;}
+.sub-row{display:flex;justify-content:space-between;align-items:center;}
+.payday-warn{font-size:11px;color:#f87171;font-weight:600;visibility:hidden;}
+.record-txt{font-size:11px;color:#7c6faa;}
+
+/* ── レベルバー ── */
+.lv-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.lv-badge{font-size:11px;font-weight:600;background:#3b0764;color:#d8b4fe;padding:4px 12px;border-radius:99px;white-space:nowrap;border:1px solid #7c3aed55;}
+.prog-track{flex:1;height:6px;background:#251860;border-radius:3px;overflow:hidden;border:1px solid #3d2d7a;}
+.prog-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:3px;transition:width 0.4s;}
+
+/* ── ステータス ── */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.stat{background:#251860;border-radius:12px;padding:10px 14px;border:1px solid #3d2d7a;}
+.stat-label{font-size:10px;color:#7c6faa;margin-bottom:3px;font-weight:500;}
+.stat-val{font-size:16px;font-weight:700;color:#f0eeff;}
+.stat-sub{font-size:10px;color:#5a4d8a;margin-top:2px;}
+.stat.danger .stat-val{color:#f87171;}
+.stat.warn .stat-val{color:#fbbf24;}
+
+/* ── アクション選択 ── */
+.section-title{font-size:10px;font-weight:600;color:#5a4d8a;letter-spacing:0.1em;margin-bottom:10px;text-transform:uppercase;}
+.action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.action-card{background:#251860;border-radius:12px;padding:12px;cursor:pointer;border:1.5px solid #3d2d7a;transition:all 0.15s;}
+.action-card:hover{border-color:#7c3aed;background:#2f1f80;}
+.action-card.selected{border-color:#7c3aed;background:#2f1f80;box-shadow:0 0 12px #7c3aed33;}
+.action-icon{font-size:26px;margin-bottom:6px;}
+.action-name{font-size:13px;font-weight:600;color:#f0eeff;margin-bottom:2px;}
+.action-desc{font-size:10px;color:#7c6faa;margin-bottom:4px;line-height:1.4;}
+.risk-tag{display:inline-block;font-size:9px;font-weight:600;padding:2px 7px;border-radius:99px;margin-bottom:4px;}
+.risk-low{background:#064e3b;color:#6ee7b7;}
+.risk-mid{background:#78350f;color:#fde68a;}
+.risk-high{background:#7c2d12;color:#fdba74;}
+.risk-max{background:#4c0519;color:#fda4af;}
+.action-detail{font-size:10px;color:#9990cc;line-height:1.5;}
+
+/* ── 確認エリア ── */
+.confirm-box{background:#251860;border-radius:14px;padding:14px;margin-bottom:12px;border-left:3px solid #7c3aed;border-top:1px solid #3d2d7a;border-right:1px solid #3d2d7a;border-bottom:1px solid #3d2d7a;}
+.confirm-title{font-size:14px;font-weight:600;color:#f0eeff;margin-bottom:6px;}
+.confirm-desc{font-size:12px;color:#9990cc;margin-bottom:12px;line-height:1.6;}
+.confirm-desc b{color:#d8b4fe;}
+.confirm-desc .warn-txt{color:#f87171;}
+.confirm-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.confirm-btns .btn{margin:0;padding:11px;}
+
+/* ── じゃんけん ── */
+.janken-box{background:#251860;border-radius:16px;padding:20px 16px;margin-bottom:12px;text-align:center;border:1px solid #3d2d7a;}
+.jk-label{font-size:12px;color:#7c6faa;margin-bottom:14px;}
+.jk-title{font-size:15px;font-weight:600;color:#f0eeff;margin-bottom:16px;}
+.jk-hands{display:flex;justify-content:center;gap:12px;}
+.jk-btn{width:90px;height:90px;font-size:40px;border-radius:16px;border:1.5px solid #3d2d7a;background:#1a1040;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+.jk-btn:hover{transform:scale(1.1);border-color:#7c3aed;background:#2f1f80;box-shadow:0 0 16px #7c3aed44;}
+.jk-btn:active{transform:scale(0.95);}
+.vs-area{margin:12px 0;}
+.vs-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px;}
+.hand-big{font-size:52px;width:80px;height:80px;display:flex;align-items:center;justify-content:center;background:#1a1040;border-radius:14px;border:1px solid #3d2d7a;}
+.vs-txt{font-size:14px;font-weight:600;color:#5a4d8a;}
+.result-big{font-size:24px;font-weight:700;margin-bottom:4px;}
+.result-sub{font-size:13px;color:#9990cc;margin-bottom:16px;}
+.win-c{color:#34d399;}
+.lose-c{color:#f87171;}
+.draw-c{color:#fbbf24;}
+
+/* ── 社員リスト ── */
+.staff-section{background:#251860;border-radius:14px;padding:14px;margin-bottom:12px;border:1.5px solid #7c2d12;}
+.staff-warn-title{font-size:13px;font-weight:600;color:#f87171;margin-bottom:10px;}
+.staff-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1a1040;border-radius:10px;margin-bottom:6px;border:1px solid #3d2d7a;}
+.staff-info .staff-name{font-size:13px;font-weight:600;color:#f0eeff;}
+.staff-info .staff-meta{font-size:10px;color:#7c6faa;margin-top:2px;}
+.fire-btn{padding:5px 12px;font-size:11px;font-weight:600;border-radius:99px;border:1.5px solid #dc2626;color:#f87171;background:transparent;cursor:pointer;white-space:nowrap;}
+.fire-btn:hover{background:#7c1d1d;}
+
+/* ── イベントバナー ── */
+.event-banner{background:#1c0f3d;border-radius:14px;padding:14px;margin-bottom:12px;border-left:3px solid #f59e0b;border-top:1px solid #3d2d7a;border-right:1px solid #3d2d7a;border-bottom:1px solid #3d2d7a;}
+.event-lbl{font-size:10px;font-weight:600;color:#f59e0b;margin-bottom:4px;letter-spacing:0.05em;}
+.event-txt{font-size:13px;color:#f0eeff;line-height:1.5;}
+
+/* ── ログ ── */
+.log-box{max-height:96px;overflow-y:auto;margin-bottom:12px;}
+.log-item{font-size:11px;color:#5a4d8a;padding:3px 2px;border-bottom:1px solid #251860;line-height:1.4;}
+.log-item:last-child{border-bottom:none;}
+
+/* ── エンド ── */
+.end-box{text-align:center;padding-top:40px;}
+.end-emoji{font-size:64px;margin-bottom:12px;filter:drop-shadow(0 0 24px #7c3aed88);}
+.end-company{font-size:20px;font-weight:700;color:#f0eeff;margin-bottom:6px;}
+.end-reason{font-size:13px;color:#7c6faa;margin-bottom:24px;}
+.end-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;text-align:left;}
+.rank-box{background:#251860;border-radius:12px;padding:12px 14px;margin-bottom:20px;border:1px solid #7c3aed55;text-align:left;}
+.rank-label{font-size:10px;color:#7c6faa;margin-bottom:4px;}
+.rank-val{font-size:15px;font-weight:600;color:#d8b4fe;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- タイトル画面 -->
+<div id="title-screen" class="screen active">
+  <div class="title-logo">🏢</div>
+  <h1>じゃんけん社長</h1>
+  <p class="title-sub">勝てば成長、負ければ倒産</p>
+  <p class="tagline">あなたの会社名を決めてください</p>
+  <div class="input-wrap" style="margin-top:24px;">
+    <input type="text" id="cname" placeholder="例: 株式会社じゃんけん" maxlength="20"/>
+  </div>
+  <button class="btn btn-primary" onclick="startGame()">🚀 創業する</button>
+  <p class="hint">
+    毎月1日が給料日。社員を雇うと毎月人件費が発生します。<br>
+    資金が尽きる前に給料を払えなければリストラ危機。<br>
+    企業価値1兆円 or 100ターンで終了。
+  </p>
+</div>
+
+<!-- ゲーム画面 -->
+<div id="game-screen" class="screen">
+  <div class="top-bar">
+    <div class="top-row">
+      <span class="company-label" id="g-company"></span>
+      <span class="day-badge" id="g-day">1日目</span>
+    </div>
+    <div class="sub-row">
+      <span class="payday-warn" id="payday-warn">⚠️ もうすぐ給料日！</span>
+      <span class="record-txt" id="g-record">0勝0敗0引</span>
+    </div>
+  </div>
+
+  <div class="lv-row">
+    <span class="lv-badge" id="g-lv">Lv1 個人事業</span>
+    <div class="prog-track"><div class="prog-fill" id="g-prog" style="width:0%"></div></div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat" id="stat-money">
+      <div class="stat-label">💰 所持金</div>
+      <div class="stat-val" id="g-money">100万</div>
+      <div class="stat-sub" id="g-labor-sub">人件費: 0万/月</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">📈 企業価値</div>
+      <div class="stat-val" id="g-value">100万</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">👥 社員数（社長含む）</div>
+      <div class="stat-val" id="g-staff">1人</div>
+      <div class="stat-sub" id="g-bonus-sub">売上補正: +0%</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">🔁 ターン / 給料日</div>
+      <div class="stat-val" id="g-turn">1</div>
+      <div class="stat-sub" id="g-payday-sub">次の給料日: 30日後</div>
+    </div>
+  </div>
+
+  <div id="event-area"></div>
+
+  <!-- アクション選択フェーズ -->
+  <div id="phase-select">
+    <div class="section-title">アクションを選択</div>
+    <div class="action-grid" id="action-grid"></div>
+    <div id="confirm-area" style="display:none;"></div>
+  </div>
+
+  <!-- じゃんけんフェーズ -->
+  <div id="phase-janken" style="display:none;">
+    <div class="janken-box">
+      <div class="jk-label" id="jk-action-label"></div>
+      <div class="jk-title">手を出せ！</div>
+      <div class="jk-hands" id="jk-hands">
+        <button class="jk-btn" onclick="playJanken('グー')">✊</button>
+        <button class="jk-btn" onclick="playJanken('チョキ')">✌️</button>
+        <button class="jk-btn" onclick="playJanken('パー')">🖐️</button>
+      </div>
+      <div class="vs-area" id="jk-vs" style="display:none;">
+        <div class="vs-row">
+          <div class="hand-big" id="jk-my"></div>
+          <div class="vs-txt">VS</div>
+          <div class="hand-big" id="jk-enemy"></div>
+        </div>
+        <div class="result-big" id="jk-result-text"></div>
+        <div class="result-sub" id="jk-result-sub"></div>
+        <button class="btn btn-ghost" style="margin-top:4px;" onclick="nextTurn()">次のターンへ →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 給料日・リストラフェーズ -->
+  <div id="phase-staff" style="display:none;">
+    <div class="staff-section">
+      <div class="staff-warn-title">💸 給料日！人件費が払えません</div>
+      <p style="font-size:12px;color:#9990cc;margin-bottom:12px;">社員を解雇して人件費を減らしてください。</p>
+      <div id="staff-list"></div>
+      <button class="btn btn-ghost" id="skip-fire-btn" onclick="endStaffPhase()" style="margin-top:8px;display:none;">このまま続ける（赤字継続）</button>
+    </div>
+  </div>
+
+  <div class="log-box" id="log-box"></div>
+</div>
+
+<!-- エンド画面 -->
+<div id="end-screen" class="screen">
+  <div class="end-box">
+    <div class="end-emoji" id="end-emoji"></div>
+    <div class="end-company" id="end-company"></div>
+    <div class="end-reason" id="end-reason"></div>
+    <div class="end-grid" id="end-stats"></div>
+    <div class="rank-box">
+      <div class="rank-label">最終ランク</div>
+      <div class="rank-val" id="end-rank"></div>
+    </div>
+    <button class="btn btn-primary" onclick="resetGame()">🔄 もう一度プレイ</button>
+  </div>
+</div>
+
+</div>
+<script>
+const HANDS=['グー','チョキ','パー'];
+const HEMOJI={グー:'✊',チョキ:'✌️',パー:'🖐️'};
+
+const LEVELS=[
+  {lv:1,name:'個人事業',min:0},
+  {lv:2,name:'小企業',min:300},
+  {lv:3,name:'ベンチャー',min:800},
+  {lv:4,name:'中堅企業',min:2000},
+  {lv:5,name:'上場企業',min:5000},
+  {lv:6,name:'大企業',min:15000},
+  {lv:7,name:'世界企業',min:50000},
+  {lv:8,name:'宇宙企業',min:200000},
+  {lv:9,name:'銀河企業',min:1000000},
+  {lv:10,name:'神企業',min:5000000},
+];
+
+const STAFF_TYPES=[
+  {role:'営業マン',wage:20,bonus:'sales',pct:30,icon:'💼'},
+  {role:'エンジニア',wage:35,bonus:'dev',pct:40,icon:'💻'},
+  {role:'デザイナー',wage:25,bonus:'ad',pct:25,icon:'🎨'},
+  {role:'アナリスト',wage:30,bonus:'invest',pct:35,icon:'📊'},
+  {role:'謎の老人',wage:5,bonus:'random',pct:60,icon:'🧙'},
+];
+
+const ACTIONS=[
+  {id:'sales',name:'営業',icon:'📣',desc:'顧客獲得で売上を伸ばす',winBase:50,drawBase:10,loseBase:-30,risk:'低',riskClass:'risk-low',detail:'勝:+50〜150万 / 負:-30万'},
+  {id:'hire',name:'採用',icon:'🤝',desc:'社員を雇う。毎月給料が発生',winBase:0,drawBase:0,loseBase:-15,risk:'中',riskClass:'risk-mid',detail:'勝:社員獲得 / 負:採用費-15万'},
+  {id:'dev',name:'開発',icon:'💻',desc:'新製品開発。ハイリスクハイリターン',winBase:80,drawBase:15,loseBase:-60,risk:'高',riskClass:'risk-high',detail:'勝:+80〜240万 / 負:-60万'},
+  {id:'invest',name:'投資',icon:'📊',desc:'資金を投じてリターンを狙う',winBase:120,drawBase:5,loseBase:-90,risk:'最高',riskClass:'risk-max',detail:'勝:+120〜360万 / 負:-90万'},
+  {id:'ad',name:'広告',icon:'📢',desc:'企業価値を直接引き上げる',winBase:60,drawBase:10,loseBase:-25,risk:'中',riskClass:'risk-mid',detail:'勝:+60〜180万(価値) / 負:-25万'},
+  {id:'nego',name:'大型交渉',icon:'🤜',desc:'一発逆転。運命を賭ける',winBase:150,drawBase:20,loseBase:-80,risk:'最高',riskClass:'risk-max',detail:'勝:+150〜450万 / 負:-80万'},
+];
+
+const EVENTS=[
+  {text:'ライバル企業が挑戦状！勝てば吸収合併、負ければ大打撃。',action:'ライバル対決',win:{money:300,value:200},lose:{money:-100,value:-50}},
+  {text:'大手投資家が現れた！勝てば億超えの出資が得られる！',action:'投資家交渉',win:{money:500,value:300},lose:{money:0,value:-30}},
+  {text:'SNS炎上発生！鎮火できなければ企業価値が崩壊する！',action:'炎上鎮火',win:{money:0,value:50},lose:{money:-50,value:-200}},
+  {text:'政府から超大型プロジェクトのオファーが到着！',action:'政府案件',win:{money:400,value:250},lose:{money:-80,value:-80}},
+  {text:'宇宙企業からの業務提携依頼！勝てば銀河市場へ！',action:'宇宙交渉',win:{money:600,value:400},lose:{money:-120,value:-100}},
+];
+
+let G={};
+let logs=[];
+let selectedAction=null;
+let pendingEvent=null;
+let pendingHire=null;
+
+function startGame(){
+  const name=document.getElementById('cname').value.trim()||'株式会社スタートアップ';
+  G={company:name,money:100,value:100,staff:[],wins:0,losses:0,draws:0,turn:1,day:1,nextPayday:30,totalLabor:0};
+  logs=[];
+  addLog('🚀「'+name+'」が創業！初期資金100万円');
+  showScreen('game-screen');
+  renderActions();
+  updateUI();
+}
+
+function getLv(){
+  let lv=LEVELS[0];
+  for(const l of LEVELS){if(G.value>=l.min)lv=l;}
+  return lv;
+}
+function getLaborCost(){return G.staff.reduce((s,st)=>s+st.wage,0);}
+function getBonus(id){let b=0;G.staff.forEach(st=>{if(st.bonus===id||st.bonus==='random')b+=st.pct;});return b;}
+
+function fmt(v){
+  const av=Math.abs(v),sign=v<0?'-':'+';
+  if(av>=1000000)return sign+(av/1000000).toFixed(2)+'兆';
+  if(av>=10000)return sign+(av/10000).toFixed(1)+'億';
+  return sign+Math.round(av)+'万';
+}
+function fmtPlain(v){
+  const av=Math.abs(v),sign=v<0?'-':'';
+  if(av>=1000000)return sign+(av/1000000).toFixed(2)+'兆';
+  if(av>=10000)return sign+(av/10000).toFixed(1)+'億';
+  return sign+Math.round(av)+'万';
+}
+
+function addLog(msg){logs.unshift(msg);}
+
+function updateUI(){
+  const lv=getLv();
+  const labor=getLaborCost();
+  const daysLeft=G.nextPayday-G.day;
+  const staffBonus=Math.round(getBonus('sales'));
+
+  document.getElementById('g-company').textContent=G.company;
+  document.getElementById('g-day').textContent=G.day+'日目';
+  document.getElementById('g-money').textContent=fmtPlain(G.money)+'円';
+  document.getElementById('g-value').textContent=fmtPlain(G.value)+'円';
+  document.getElementById('g-staff').textContent=(G.staff.length+1)+'人';
+  document.getElementById('g-turn').textContent=G.turn;
+  document.getElementById('g-record').textContent=G.wins+'勝'+G.losses+'敗'+G.draws+'引';
+  document.getElementById('g-labor-sub').textContent='人件費: '+labor+'万/月';
+  document.getElementById('g-bonus-sub').textContent='売上補正: +'+staffBonus+'%';
+  document.getElementById('g-payday-sub').textContent='次の給料日: '+daysLeft+'日後';
+  document.getElementById('g-lv').textContent='Lv'+lv.lv+' '+lv.name;
+
+  const sm=document.getElementById('stat-money');
+  sm.className='stat'+(G.money<labor*2?' danger':G.money<labor*4?' warn':'');
+
+  const pw=document.getElementById('payday-warn');
+  pw.style.visibility=daysLeft<=5?'visible':'hidden';
+
+  const nextLv=LEVELS.find(l=>l.lv===lv.lv+1);
+  let pct=nextLv?Math.min(100,Math.round((G.value-lv.min)/(nextLv.min-lv.min)*100)):100;
+  document.getElementById('g-prog').style.width=pct+'%';
+
+  document.getElementById('log-box').innerHTML=logs.slice(0,8).map(l=>'<div class="log-item">'+l+'</div>').join('');
+}
+
+function renderActions(){
+  document.getElementById('action-grid').innerHTML=ACTIONS.map(a=>`
+    <div class="action-card" id="ac-${a.id}" onclick="selectAction('${a.id}')">
+      <div class="action-icon">${a.icon}</div>
+      <div class="action-name">${a.name}</div>
+      <div class="action-desc">${a.desc}</div>
+      <span class="risk-tag ${a.riskClass}">リスク: ${a.risk}</span>
+      <div class="action-detail">${a.detail}</div>
+    </div>
+  `).join('');
+  document.getElementById('confirm-area').style.display='none';
+  selectedAction=null;pendingHire=null;
+}
+
+function selectAction(id){
+  selectedAction=id;
+  document.querySelectorAll('.action-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('ac-'+id).classList.add('selected');
+
+  const a=ACTIONS.find(x=>x.id===id);
+  const bonus=getBonus(id);
+  const labor=getLaborCost();
+  let desc='';
+
+  if(id==='hire'){
+    const type=STAFF_TYPES[Math.floor(Math.random()*STAFF_TYPES.length)];
+    pendingHire={...type};
+    desc=`採用候補: <b>${type.icon} ${type.role}</b><br>月給: <b>${type.wage}万円</b>（毎月給料日に発生）<br>補正効果: 関連アクションの収益を <b>+${type.pct}%</b> アップ<br>現在の月次人件費: ${labor}万 → <b>${labor+type.wage}万</b>に増加`;
+  } else {
+    const winAmt=Math.round(a.winBase*(1+(bonus/100)));
+    const winMax=Math.round(winAmt*1.5);
+    desc=`社員ボーナス: <b>+${bonus}%</b> 適用済み<br>勝利時: <b>+${winAmt}〜${winMax}万円</b><br>敗北時: <b>${a.loseBase}万円</b> の損失${id==='invest'&&G.money<60?'<br><span class="warn-txt">⚠️ 資金不足！負けると致命的なダメージ</span>':''}`;
+  }
+
+  document.getElementById('confirm-area').innerHTML=`
+    <div class="confirm-box">
+      <div class="confirm-title">${a.icon} ${a.name} を実行しますか？</div>
+      <div class="confirm-desc">${desc}</div>
+      <div class="confirm-btns">
+        <button class="btn btn-ghost" onclick="cancelAction()">← 戻る</button>
+        <button class="btn btn-primary" onclick="goJanken()">✊ じゃんけん！</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('confirm-area').style.display='block';
+}
+
+function cancelAction(){
+  selectedAction=null;pendingHire=null;
+  document.querySelectorAll('.action-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('confirm-area').style.display='none';
+}
+
+function goJanken(){
+  if(!selectedAction)return;
+  const a=ACTIONS.find(x=>x.id===selectedAction);
+  document.getElementById('phase-select').style.display='none';
+  document.getElementById('phase-janken').style.display='block';
+  document.getElementById('jk-action-label').textContent='【'+a.name+'】';
+  document.getElementById('jk-hands').style.display='flex';
+  document.getElementById('jk-vs').style.display='none';
+}
+
+function playJanken(myHand){
+  const enemy=HANDS[Math.floor(Math.random()*3)];
+  document.getElementById('jk-hands').style.display='none';
+  document.getElementById('jk-my').textContent=HEMOJI[myHand];
+  document.getElementById('jk-enemy').textContent=HEMOJI[enemy];
+  document.getElementById('jk-vs').style.display='block';
+
+  const outcome=judge(myHand,enemy);
+  const a=pendingEvent?null:ACTIONS.find(x=>x.id===selectedAction);
+  let rtxt='',rsub='',cls='';
+
+  if(outcome==='win'){
+    G.wins++;cls='win-c';
+    if(pendingEvent){
+      G.money+=pendingEvent.win.money;G.value+=pendingEvent.win.value;
+      rtxt='勝利！';rsub=pendingEvent.win.money>0?'資金+'+pendingEvent.win.money+'万 企業価値+'+pendingEvent.win.value+'万':'ピンチを切り抜けた！';
+      addLog('['+pendingEvent.action+'] 勝利！+'+pendingEvent.win.money+'万');
+    } else if(selectedAction==='hire'){
+      G.staff.push({...pendingHire});
+      rtxt='採用成功！';rsub=pendingHire.icon+pendingHire.role+'が入社（月給'+pendingHire.wage+'万）';
+      addLog('採用: '+pendingHire.role+' 入社（月給'+pendingHire.wage+'万）');
+    } else {
+      const bonus=getBonus(selectedAction);
+      const base=Math.round(a.winBase*(1+bonus/100));
+      const extra=Math.round(base*Math.random()*0.5);
+      const total=base+extra;
+      if(selectedAction==='ad'){G.value+=total;}else{G.money+=total;G.value+=Math.round(total*0.3);}
+      rtxt='勝利！';rsub='+'+total+'万円獲得'+(extra>0?' (ボーナス+'+extra+'万)':'');
+      addLog('['+a.name+'] 勝利 +'+total+'万');
+    }
+  } else if(outcome==='draw'){
+    G.draws++;cls='draw-c';
+    if(pendingEvent){rtxt='引き分け...';rsub='変化なし';addLog('['+pendingEvent.action+'] 引き分け');}
+    else if(selectedAction==='hire'){rtxt='引き分け...';rsub='採用は見送り';addLog('採用: 引き分け');}
+    else{
+      const v=a.drawBase;
+      if(selectedAction==='ad'){G.value+=v;}else{G.money+=v;}
+      rtxt='引き分け...';rsub='+'+v+'万円（小さな成果）';
+      addLog('['+a.name+'] 引き分け +'+v+'万');
+    }
+  } else {
+    G.losses++;cls='lose-c';
+    if(pendingEvent){
+      G.money+=pendingEvent.lose.money;G.value+=pendingEvent.lose.value;
+      rtxt='敗北...';rsub=pendingEvent.lose.money+'万 企業価値'+pendingEvent.lose.value+'万';
+      addLog('['+pendingEvent.action+'] 敗北');
+    } else if(selectedAction==='hire'){
+      G.money+=a.loseBase;
+      rtxt='敗北...';rsub='採用費'+a.loseBase+'万円の損失';
+      addLog('採用: 失敗 '+a.loseBase+'万');
+    } else {
+      G.money+=a.loseBase;G.value+=Math.round(a.loseBase*0.2);
+      rtxt='敗北...';rsub=a.loseBase+'万円の損失';
+      addLog('['+a.name+'] 敗北 '+a.loseBase+'万');
+    }
+  }
+
+  pendingEvent=null;
+  if(G.money<-500)G.money=-500;
+  const rt=document.getElementById('jk-result-text');
+  rt.textContent=rtxt;rt.className='result-big '+cls;
+  document.getElementById('jk-result-sub').textContent=rsub;
+  updateUI();
+}
+
+function judge(my,en){
+  if(my===en)return'draw';
+  if((my==='グー'&&en==='チョキ')||(my==='チョキ'&&en==='パー')||(my==='パー'&&en==='グー'))return'win';
+  return'lose';
+}
+
+function nextTurn(){
+  G.turn++;G.day+=3;
+  document.getElementById('phase-janken').style.display='none';
+  document.getElementById('event-area').innerHTML='';
+
+  if(G.money<=-500&&G.value<=0){endGame('倒産');return;}
+  if(G.value>=1000000){endGame('達成');return;}
+  if(G.turn>100){endGame('終了');return;}
+
+  if(G.day>=G.nextPayday){doPayday();return;}
+
+  if(G.turn%8===0&&Math.random()<0.55)triggerEvent();
+  else{renderActions();document.getElementById('phase-select').style.display='block';}
+  updateUI();
+}
+
+function doPayday(){
+  G.nextPayday+=30;
+  const labor=getLaborCost();
+  if(labor===0){addLog('💸 給料日（人件費なし）');renderActions();document.getElementById('phase-select').style.display='block';updateUI();return;}
+  addLog('💸 給料日！人件費 '+labor+'万円');
+  if(G.money>=labor){
+    G.money-=labor;G.totalLabor+=labor;
+    addLog('✅ 給料支払い完了');
+    renderActions();document.getElementById('phase-select').style.display='block';
+  } else {
+    document.getElementById('phase-select').style.display='none';
+    document.getElementById('phase-staff').style.display='block';
+    renderStaffList();
+  }
+  updateUI();
+}
+
+function renderStaffList(){
+  document.getElementById('staff-list').innerHTML=G.staff.map((s,i)=>`
+    <div class="staff-row">
+      <div class="staff-info">
+        <div class="staff-name">${s.icon} ${s.role}</div>
+        <div class="staff-meta">月給 ${s.wage}万円 / 補正 +${s.pct}%</div>
+      </div>
+      <button class="fire-btn" onclick="fireStaff(${i})">解雇</button>
+    </div>
+  `).join('');
+  document.getElementById('skip-fire-btn').style.display=G.money>-200?'block':'none';
+}
+
+function fireStaff(i){
+  const s=G.staff.splice(i,1)[0];
+  addLog('リストラ: '+s.role+'を解雇');
+  const labor=getLaborCost();
+  if(G.money>=labor){
+    G.money-=labor;G.totalLabor+=labor;
+    addLog('✅ 給料支払い完了');
+    document.getElementById('phase-staff').style.display='none';
+    renderActions();document.getElementById('phase-select').style.display='block';
+  } else {renderStaffList();}
+  updateUI();
+}
+
+function endStaffPhase(){
+  document.getElementById('phase-staff').style.display='none';
+  renderActions();document.getElementById('phase-select').style.display='block';
+  updateUI();
+}
+
+function triggerEvent(){
+  const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  pendingEvent=ev;
+  document.getElementById('event-area').innerHTML=`<div class="event-banner"><div class="event-lbl">⚡ 緊急イベント発生</div><div class="event-txt">${ev.text}</div></div>`;
+  selectedAction=ev.action;
+  document.getElementById('phase-select').style.display='none';
+  document.getElementById('phase-janken').style.display='block';
+  document.getElementById('jk-action-label').textContent='【'+ev.action+'】';
+  document.getElementById('jk-hands').style.display='flex';
+  document.getElementById('jk-vs').style.display='none';
+  updateUI();
+}
+
+function endGame(reason){
+  const lv=getLv();
+  let emoji='',rank='';
+  if(reason==='倒産'){emoji='💸';rank='倒産... 次こそ頑張れ！';}
+  else if(G.value>=1000000){emoji='👑';rank='神企業達成！伝説の社長。';}
+  else if(G.value>=50000){emoji='🌍';rank='世界企業に成長！';}
+  else if(G.value>=5000){emoji='📈';rank='上場企業として成功！';}
+  else if(G.value>=800){emoji='🚀';rank='ベンチャー企業として台頭！';}
+  else{emoji='🏠';rank='小さくとも確かな会社。';}
+
+  document.getElementById('end-emoji').textContent=emoji;
+  document.getElementById('end-company').textContent=G.company;
+  document.getElementById('end-reason').textContent=reason==='達成'?'🎉 企業価値1兆円達成！':reason==='倒産'?'会社が倒産しました...':'100ターン経過で終了';
+  document.getElementById('end-stats').innerHTML=`
+    <div class="stat"><div class="stat-label">最終企業価値</div><div class="stat-val">${fmtPlain(G.value)}円</div></div>
+    <div class="stat"><div class="stat-label">最終所持金</div><div class="stat-val">${fmtPlain(G.money)}円</div></div>
+    <div class="stat"><div class="stat-label">勝利数</div><div class="stat-val">${G.wins}勝</div></div>
+    <div class="stat"><div class="stat-label">敗北数</div><div class="stat-val">${G.losses}敗</div></div>
+    <div class="stat"><div class="stat-label">最終社員数</div><div class="stat-val">${G.staff.length+1}人</div></div>
+    <div class="stat"><div class="stat-label">総人件費</div><div class="stat-val">${fmtPlain(G.totalLabor)}円</div></div>
+  `;
+  document.getElementById('end-rank').textContent='Lv'+lv.lv+' '+lv.name+' — '+rank;
+  showScreen('end-screen');
+}
+
+function resetGame(){document.getElementById('cname').value='';showScreen('title-screen');}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+</script>
+</body>
+</html>
